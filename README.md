@@ -9,6 +9,10 @@ THe objectives for this project so far are:
 - build a UI in React
 - analyse + optimise the contracts (for gas cost eventually)
 
+# Smart Contracts Architecture
+
+<a href="https://ibb.co/8gLmMTK"><img src="https://i.ibb.co/tpTHBkm/Screenshot-2020-06-28-at-11-30-33.png" alt="Screenshot-2020-06-28-at-11-30-33" border="0"></a>
+
 # Contract Storage Layout
 
 ## RelayTxStruct.sol
@@ -60,4 +64,63 @@ We can restructure the members of the struct to pack multiple values in one stor
 |slot 0  |`from`  |`compensation`|
 |slot 1  |`to`    |`deadline`|
 |slot 2  |`relay` |`gas_limit`|
-|slot 3  |`data`  |
+|slot 3  |`data`  |`data`|
+
+## Summary
+
+Below are stats for running the two previous functions with the optimised struct. Both `abi.encode` and `abi.encodePacked` are compared.
+
+Both normal and packed encoding do not affect to generated hash. The same hash is produced, whether `abi.encode` and `abi.encodePacked`.
+
+We can conclude that packed encoding is not necessary, since the data is already tightly packed.
+`abi.encodePacked` is only beneficial for the last variable `data`, by removing trailing zeros for instance between the data and bytes length.
+
+
+**Computing the hash**
+
+Parameters are:
+- address: any
+- compensation: 2,000,000
+- deadline: 15,000
+- gas_limit: 3,000,000
+
+using **`abi.encode`**
+||gas cost|Gas cost reduction (%)|
+|------|------|-----|
+|Tx cost|31,208|-1.22%|
+|Execution cost|3,920|-8.98%|
+
+using **`abi.encodePacked`**
+
+||gas cost|gas cost reduction (%)|
+|------|------|--------|
+|Tx cost|31,186|-1.29%|
+|Execution cost|3,898|-9.49%|
+
+
+**Writing to storage**
+
+||gas cost|gas cost reduction (%)|
+|------|------|--------|
+|Tx cost|118,839|-31.52%|
+|Execution cost|91,423|-37.49%|
+
+## Decoded input
+
+The tuple looks like this (decoded input)
+
+```
+address /* ... */,
+{
+    "_hex": "compensation"
+},
+address /* ... */,
+{
+    "_hex": "deadline"
+},
+address /* ... */,
+{
+    "_hex": "gas_limit"
+},
+"data"
+```
